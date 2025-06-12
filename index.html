@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-ESRGAN Image Processor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .drop-zone {
+            flex: 1;
+            min-height: 400px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .drop-zone.dragover {
+            border-color: #2196F3;
+            background-color: #e3f2fd;
+        }
+        .preview {
+            flex: 1;
+            min-height: 400px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white;
+        }
+        .preview img {
+            max-width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+        }
+        .message {
+            text-align: center;
+            color: #666;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .loading.active {
+            display: block;
+        }
+        .image-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .preview-container {
+            position: relative;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="preview-container">
+            <div class="drop-zone" id="dropZone">
+                <div class="message">
+                    Drag and drop an image here<br>
+                    or click to select
+                </div>
+                <div class="image-label">Original Image</div>
+            </div>
+        </div>
+        <div class="preview-container">
+            <div class="preview" id="preview">
+                <div class="message">
+                    Processed image will appear here
+                </div>
+                <div class="image-label">Processed Image</div>
+            </div>
+        </div>
+    </div>
+    <div class="loading" id="loading">
+        Processing image... Please wait
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const preview = document.getElementById('preview');
+        const loading = document.getElementById('loading');
+
+        // Prevent default drag behaviors
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        // Highlight drop zone when item is dragged over it
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, unhighlight, false);
+        });
+
+        // Handle dropped files
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        // Handle click to upload
+        dropZone.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => handleFiles(e.target.files);
+            input.click();
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight(e) {
+            dropZone.classList.add('dragover');
+        }
+
+        function unhighlight(e) {
+            dropZone.classList.remove('dragover');
+        }
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type.startsWith('image/')) {
+                    // Show the original image immediately
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        dropZone.innerHTML = `
+                            <img src="${e.target.result}" style="max-width: 100%; max-height: 400px; object-fit: contain;">
+                            <div class="image-label">Original Image</div>
+                        `;
+                    };
+                    reader.readAsDataURL(file);
+                    
+                    uploadAndProcess(file);
+                } else {
+                    alert('Please drop an image file');
+                }
+            }
+        }
+
+        function uploadAndProcess(file) {
+            const formData = new FormData();
+            formData.append('image', file);
+
+            loading.classList.add('active');
+            preview.innerHTML = '<div class="message">Processing...</div>';
+
+            fetch('/process', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    preview.innerHTML = `
+                        <img src="output.png?t=${Date.now()}" alt="Processed image" style="max-width: 100%; max-height: 400px; object-fit: contain;">
+                        <div class="image-label">Processed Image</div>
+                    `;
+                } else {
+                    preview.innerHTML = '<div class="message">Error processing image</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                preview.innerHTML = '<div class="message">Error processing image</div>';
+            })
+            .finally(() => {
+                loading.classList.remove('active');
+            });
+        }
+    </script>
+</body>
+</html> 
