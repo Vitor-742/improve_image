@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-ESRGAN Image Processor</title>
+    <title>AI Image Editor</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,14 +12,12 @@
             background-color: #f5f5f5;
         }
         .container {
-            display: flex;
-            gap: 20px;
             max-width: 1200px;
             margin: 0 auto;
         }
         .drop-zone {
-            flex: 1;
-            min-height: 400px;
+            width: 100%;
+            min-height: 300px;
             border: 2px dashed #ccc;
             border-radius: 8px;
             display: flex;
@@ -28,24 +26,26 @@
             background-color: white;
             transition: all 0.3s ease;
             position: relative;
+            margin-bottom: 20px;
         }
         .drop-zone.dragover {
             border-color: #2196F3;
             background-color: #e3f2fd;
         }
         .preview {
-            flex: 1;
-            min-height: 400px;
+            width: 100%;
+            min-height: 300px;
             border: 2px solid #ccc;
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             background-color: white;
+            margin-bottom: 20px;
         }
         .preview img {
             max-width: 100%;
-            max-height: 400px;
+            max-height: 300px;
             object-fit: contain;
         }
         .message {
@@ -55,7 +55,7 @@
         .loading {
             display: none;
             text-align: center;
-            margin-top: 20px;
+            margin: 20px 0;
         }
         .loading.active {
             display: block;
@@ -70,40 +70,89 @@
             border-radius: 4px;
             font-size: 14px;
         }
-        .preview-container {
-            position: relative;
-            flex: 1;
+        .prompt-container {
+            margin: 20px 0;
+        }
+        .prompt-input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        .submit-button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .submit-button:hover {
+            background-color: #1976D2;
+        }
+        .prompt-suggestions {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+        .error-message {
+            color: #d32f2f;
+            background-color: #ffebee;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            display: none;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="preview-container">
-            <div class="drop-zone" id="dropZone">
-                <div class="message">
-                    Drag and drop an image here<br>
-                    or click to select
-                </div>
-                <div class="image-label">Original Image</div>
+        <div class="drop-zone" id="dropZone">
+            <div class="message">
+                Drag and drop an image here<br>
+                or click to select
+            </div>
+            <div class="image-label">Original Image</div>
+        </div>
+        
+        <div class="prompt-container">
+            <input type="text" class="prompt-input" id="promptInput" placeholder="Describe how you want to edit the image (e.g., 'make it look like a painting', 'add a sunset background', 'make it more vibrant')">
+            <button class="submit-button" id="submitButton">Enviar</button>
+            <div class="prompt-suggestions">
+                <strong>Tips for better results:</strong><br>
+                - Be specific about the changes you want<br>
+                - You can describe style changes (e.g., "make it look like a watercolor painting")<br>
+                - You can describe content changes (e.g., "add a mountain landscape in the background")<br>
+                - You can describe mood changes (e.g., "make it more dramatic with dark shadows")
             </div>
         </div>
-        <div class="preview-container">
-            <div class="preview" id="preview">
-                <div class="message">
-                    Processed image will appear here
-                </div>
-                <div class="image-label">Processed Image</div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="preview" id="preview">
+            <div class="message">
+                AI-edited image will appear here
             </div>
+            <div class="image-label">Edited Image</div>
         </div>
     </div>
+
     <div class="loading" id="loading">
-        Processing image... Please wait
+        AI is editing your image... Please wait
     </div>
 
     <script>
         const dropZone = document.getElementById('dropZone');
         const preview = document.getElementById('preview');
         const loading = document.getElementById('loading');
+        const promptInput = document.getElementById('promptInput');
+        const submitButton = document.getElementById('submitButton');
+        const errorMessage = document.getElementById('errorMessage');
+        let currentFile = null;
 
         // Prevent default drag behaviors
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -132,6 +181,15 @@
             input.click();
         });
 
+        // Handle submit button click
+        submitButton.addEventListener('click', () => {
+            if (currentFile && promptInput.value.trim()) {
+                uploadAndProcess(currentFile);
+            } else {
+                showError('Please select an image and enter a prompt');
+            }
+        });
+
         function preventDefaults(e) {
             e.preventDefault();
             e.stopPropagation();
@@ -155,29 +213,40 @@
             if (files.length > 0) {
                 const file = files[0];
                 if (file.type.startsWith('image/')) {
-                    // Show the original image immediately
+                    currentFile = file;
+                    // Show the image preview
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         dropZone.innerHTML = `
-                            <img src="${e.target.result}" style="max-width: 100%; max-height: 400px; object-fit: contain;">
+                            <img src="${e.target.result}" style="max-width: 100%; max-height: 300px; object-fit: contain;">
                             <div class="image-label">Original Image</div>
                         `;
                     };
                     reader.readAsDataURL(file);
-                    
-                    uploadAndProcess(file);
+                    hideError();
                 } else {
-                    alert('Please drop an image file');
+                    showError('Please drop an image file');
                 }
             }
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
         }
 
         function uploadAndProcess(file) {
             const formData = new FormData();
             formData.append('image', file);
+            formData.append('prompt', promptInput.value.trim());
 
             loading.classList.add('active');
-            preview.innerHTML = '<div class="message">Processing...</div>';
+            preview.innerHTML = '<div class="message">AI is processing your image...</div>';
+            hideError();
 
             fetch('/process', {
                 method: 'POST',
@@ -187,16 +256,18 @@
             .then(data => {
                 if (data.success) {
                     preview.innerHTML = `
-                        <img src="output.png?t=${Date.now()}" alt="Processed image" style="max-width: 100%; max-height: 400px; object-fit: contain;">
-                        <div class="image-label">Processed Image</div>
+                        <img src="${data.edited_image}" style="max-width: 100%; max-height: 300px; object-fit: contain;">
+                        <div class="image-label">Edited Image</div>
                     `;
                 } else {
-                    preview.innerHTML = '<div class="message">Error processing image</div>';
+                    showError(data.error || 'Error processing image');
+                    preview.innerHTML = '<div class="message">Error occurred</div>';
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                preview.innerHTML = '<div class="message">Error processing image</div>';
+                showError('Error processing image');
+                preview.innerHTML = '<div class="message">Error occurred</div>';
             })
             .finally(() => {
                 loading.classList.remove('active');
@@ -204,4 +275,5 @@
         }
     </script>
 </body>
+</html> 
 </html> 
