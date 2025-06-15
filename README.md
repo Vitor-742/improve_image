@@ -48,49 +48,22 @@ http://localhost:5000
    - Aguarde o processamento da IA
    - A imagem editada será exibida na área de preview
 
-## Exemplos de Prompts
 
-- "Transforme esta imagem em um estilo de pintura a óleo"
-- "Adicione um céu noturno com estrelas"
-- "Faça a imagem parecer mais vintage"
-- "Adicione um efeito de neblina"
-- "Transforme em um desenho animado"
-- "Adicione um filtro de verão"
+Original:
 
-## Tecnologias Utilizadas
+![input](https://github.com/user-attachments/assets/cd484faf-31eb-4b99-829f-23d0154b6567)
 
-- Flask - Framework web
-- Google Gemini API - Modelo de IA para processamento de imagens
-- Python-dotenv - Gerenciamento de variáveis de ambiente
-- Pillow - Processamento de imagens
-- HTML/CSS/JavaScript - Interface do usuário
+Google Gemini 2.0 Flash:
 
-## Estrutura do Projeto
+![imagem melhorada](https://github.com/user-attachments/assets/ae70a600-c219-4471-9a51-0d87ab83756b)
 
-```
-.
-├── server.py          # Servidor Flask e lógica principal
-├── index.html         # Interface do usuário
-├── requirements.txt   # Dependências do projeto
-├── .env              # Configurações e chaves de API
-└── README.md         # Este arquivo
-```
+ - Geração de corpo da personagem
 
-## Limitações
+![imagem personagem](https://github.com/user-attachments/assets/5093c882-2e07-4c58-8516-2b430198355e)
 
-- O tamanho máximo da imagem é limitado pela API do Gemini
-- A qualidade da edição depende da clareza do prompt
-- Requer conexão com a internet para funcionar
-- Necessário ter uma chave de API válida do Google Gemini
+Real-ESRGAN:
 
-## Contribuindo
+![output](https://github.com/user-attachments/assets/2a05b118-4036-4316-85bb-a7522a2fdc44)
 
-Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou enviar pull requests.
 
-## Licença
 
-Este projeto está licenciado sob a licença MIT - veja o arquivo LICENSE para detalhes.
-
-## Suporte
-
-Se você encontrar algum problema ou tiver alguma dúvida, por favor abra uma issue no repositório.
